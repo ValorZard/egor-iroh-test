@@ -24,6 +24,11 @@ pub struct Player {
     pub is_local: bool,
 }
 
+pub const DEFAULT_POSITION: PlayerPosition = PlayerPosition { x: 0.0, y: 0.0 };
+pub const DEFAULT_PLAYER_SPEED : f32 = 5.0;
+pub const DEFAULT_PLAYER_WIDTH : f32 = 50.0;
+pub const DEFAULT_PLAYER_HEIGHT : f32 = 50.0;
+
 pub enum NetworkState {
     ClientConnection(Client, Entity),
     ServerConnection(Server, Option<Entity>),
@@ -88,9 +93,9 @@ impl GameState {
         let player = self.world.spawn((
             player_id.clone(),
             Player {
-                position: PlayerPosition { x: 0.0, y: 0.0 },
-                width: 50.0,
-                height: 50.0,
+                position: DEFAULT_POSITION,
+                width: DEFAULT_PLAYER_WIDTH,
+                height: DEFAULT_PLAYER_HEIGHT,
                 is_local: true,
             },
         ));
@@ -106,9 +111,9 @@ impl GameState {
         let player = self.world.spawn((
             player_id.clone(),
             Player {
-                position: PlayerPosition { x: 0.0, y: 0.0 },
-                width: 50.0,
-                height: 50.0,
+                position: DEFAULT_POSITION,
+                width: DEFAULT_PLAYER_WIDTH,
+                height: DEFAULT_PLAYER_HEIGHT,
                 is_local: false,
             },
         ));
@@ -208,8 +213,9 @@ impl GameState {
                 let query = self.world.query_mut::<(&PlayerId, &mut Player)>();
                 for (id, player) in query {
                     if *id == client.get_local_endpoint_id() {
-                        player.position.x += (input.right as i8 - input.left as i8) as f32 * 5.0;
-                        player.position.y += (input.down as i8 - input.up as i8) as f32 * 5.0;
+                        // TODO: moving diagonally is faster than moving straight, need to normalize movement vector
+                        player.position.x += (input.right as i8 - input.left as i8) as f32 * DEFAULT_PLAYER_SPEED;
+                        player.position.y += (input.down as i8 - input.up as i8) as f32 * DEFAULT_PLAYER_SPEED;
                         // Send position to the server
                         let message = UnreliableClientMessage::PlayerPosition(PlayerPosition {
                             x: player.position.x,
