@@ -75,6 +75,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut server_address = cli.server_id.unwrap_or_else(|| "Put server ip here".to_string());
     let game_state = Arc::new(Mutex::new(GameState::default()));
 
+    let game_state_clone = game_state.clone();
     App::new().title("Hot Reload Demo").run(
         move |FrameContext {
                   events,
@@ -101,5 +102,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_ui_callbacks(egui_ctx, game_state.clone(), &mut server_address);
         },
     );
+
+    {
+        game_state_clone.lock().unwrap().close_session();
+    }
+
     Ok(())
 }

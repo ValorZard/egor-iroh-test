@@ -399,6 +399,11 @@ impl GameState {
         }
     }
 
+    pub fn close_session(&mut self) {
+        self.close_client();
+        self.close_server();
+    }
+
     pub fn get_remote_player_amount(&self) -> i32 {
         self.remote_player_map.len() as i32
     }
