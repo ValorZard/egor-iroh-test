@@ -425,13 +425,9 @@ impl GameState {
 
     pub fn get_local_player_component(&mut self) -> Option<Player> {
         let local_player_id = self.get_local_network_id();
-        let query = self.world.query_mut::<(&PlayerId, &Player)>();
-        for (id, player) in query {
-            if *id == local_player_id {
-                return Some(player.clone());
-            }
-        }
-        None
+        let local_player_entity = self.remote_player_map.get(&local_player_id)?;
+        let query = self.world.query_one_mut::<&Player>(*local_player_entity).ok()?;
+        Some(query.clone())
     }
 
     pub fn get_remote_players(&mut self) -> Vec<(PlayerId, Player)> {
