@@ -1,3 +1,4 @@
+use clap::Parser;
 use egor::{
     app::{
         App, FrameContext,
@@ -61,9 +62,17 @@ fn run_ui_callbacks(
     });
 }
 
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Optional server ID to connect to
+    server_id: Option<String>,
+}
+
 /// The main entrypoint.
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut server_address = String::from("Put address here");
+    let cli = Cli::parse();
+    let mut server_address = cli.server_id.unwrap_or_else(|| "Put server ip here".to_string());
     let game_state = Arc::new(Mutex::new(GameState::default()));
 
     App::new().title("Hot Reload Demo").run(

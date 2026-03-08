@@ -9,3 +9,4 @@ hecs.workspace = true
 game_core = { path = "../game_core" }
 tokio.workspace = true
 async-channel.workspace = true
+clap = {version =  "4.5.60", features = ["derive"]}

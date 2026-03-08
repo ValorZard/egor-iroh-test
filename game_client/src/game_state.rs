@@ -65,18 +65,22 @@ impl GameState {
 
     pub fn start_client(&mut self, server_iroh_string: String) -> Option<Entity> {
         println!("starting client");
-        if let Ok(client) = self
+        match self
             .async_runtime
             .block_on(run_client(server_iroh_string.to_string()))
         {
-            println!("client running");
-            let player_id = client.get_local_endpoint_id();
-            let player_ref = self.spawn_local_player(player_id);
-            self.network_state = Some(NetworkState::ClientConnection(client, player_ref.clone()));
-            Some(player_ref)
-        } else {
-            println!("failed to run client");
-            None
+            Ok(client) => {
+                println!("client running");
+                let player_id = client.get_local_endpoint_id();
+                let player_ref = self.spawn_local_player(player_id);
+                self.network_state =
+                    Some(NetworkState::ClientConnection(client, player_ref.clone()));
+                Some(player_ref)
+            }
+            Err(e) => {
+                println!("failed to run client: {:?}", e);
+                None
+            }
         }
     }
 
@@ -115,10 +119,12 @@ impl GameState {
     fn remove_player(&mut self, player_id: &PlayerId) {
         println!("[client] Player left with ID: {}", player_id);
 
+        // Remove from player map
+        self.remote_player_map.remove(player_id.as_str());
+
         // Remove player from the ECS world
-        let query = self.world.query_mut::<(Entity, &PlayerId)>();
         let mut entities_to_despawn = Vec::new();
-        for (entity, id) in query {
+        for (entity, id) in self.world.query_mut::<(Entity, &PlayerId)>() {
             if *id == *player_id {
                 entities_to_despawn.push(entity);
             }
@@ -133,18 +139,10 @@ impl GameState {
         player_id: &PlayerId,
         player_position: &PlayerPosition,
     ) {
-        let query = self.world.query_mut::<(&PlayerId, &mut PlayerPosition)>();
-        for (id, position) in query {
+        let query = self.world.query_mut::<(&PlayerId, &mut Player)>();
+        for (id, player) in query {
             if *id == *player_id {
-                *position = *player_position;
-                /*
-                println!(
-                    "Updated position for player {}: ({}, {})",
-                    player_id,
-                    position.x,
-                    position.y
-                );
-                */
+                player.position = *player_position;
             }
         }
     }
@@ -207,15 +205,15 @@ impl GameState {
             // Send local player's position to the server
             {
                 // Update local player position in the ECS world
-                let query = self.world.query_mut::<(&PlayerId, &mut PlayerPosition)>();
-                for (id, world_position) in query {
+                let query = self.world.query_mut::<(&PlayerId, &mut Player)>();
+                for (id, player) in query {
                     if *id == client.get_local_endpoint_id() {
-                        world_position.x += (input.right as i8 - input.left as i8) as f32 * 5.0;
-                        world_position.y += (input.down as i8 - input.up as i8) as f32 * 5.0;
+                        player.position.x += (input.right as i8 - input.left as i8) as f32 * 5.0;
+                        player.position.y += (input.down as i8 - input.up as i8) as f32 * 5.0;
                         // Send position to the server
                         let message = UnreliableClientMessage::PlayerPosition(PlayerPosition {
-                            x: world_position.x,
-                            y: world_position.y,
+                            x: player.position.x,
+                            y: player.position.y,
                         });
                         if let Err(e) = client.unreliable_client_sender.try_send(message) {
                             println!("Failed to send player position: {:?}", e);
@@ -308,10 +306,10 @@ impl GameState {
             // Send messages to clients
             let game_data = self
                 .world
-                .query::<(&PlayerId, &PlayerPosition)>()
+                .query::<(&PlayerId, &Player)>()
                 .iter()
-                .map(|(id, position)| {
-                    UnreliableServerMessage::PlayerPosition(id.clone(), *position)
+                .map(|(id, player)| {
+                    UnreliableServerMessage::PlayerPosition(id.clone(), player.position)
                 })
                 .collect::<Vec<UnreliableServerMessage>>();
 
