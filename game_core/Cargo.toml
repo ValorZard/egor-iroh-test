@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rkyv.workspace = true
+tokio.workspace = true
+iroh.workspace = true
+rand.workspace = true
+bytes.workspace = true
+hecs.workspace = true
+async-channel.workspace = true
+console-subscriber.workspace = true
