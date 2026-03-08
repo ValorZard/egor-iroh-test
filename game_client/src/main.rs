@@ -50,14 +50,23 @@ fn run_ui_callbacks(
         }
         ui.label("Enter server address to connect:");
         ui.text_edit_singleline(server_address);
-        if ui.button("Start Client").clicked() {
-            println!("connecting to {}", server_address);
-            let address = server_address.clone();
-            println!("{:?}", game_state.start_client(address));
-        }
-        if ui.button("Start Server").clicked() {
-            println!("starting server");
-            game_state.start_server();
+
+        if let None = game_state.get_current_network_state() {
+            ui.label("Not connected");
+            if ui.button("Start Client").clicked() {
+                println!("connecting to {}", server_address);
+                let address = server_address.clone();
+                println!("{:?}", game_state.start_client(address));
+            }
+            if ui.button("Start Server").clicked() {
+                println!("starting server");
+                game_state.start_server();
+                *server_address = game_state
+                    .get_local_network_id()
+                    .unwrap_or_else(|| "Failed to get server ID".to_string());
+            }
+        } else if let Some(network_state) = game_state.get_current_network_state() {
+            ui.label(format!("Current network state: {}", network_state));
         }
     });
 }
@@ -72,7 +81,9 @@ struct Cli {
 /// The main entrypoint.
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
-    let mut server_address = cli.server_id.unwrap_or_else(|| "Put server ip here".to_string());
+    let mut server_address = cli
+        .server_id
+        .unwrap_or_else(|| "Put server ip here".to_string());
     let game_state = Arc::new(Mutex::new(GameState::default()));
 
     let game_state_clone = game_state.clone();

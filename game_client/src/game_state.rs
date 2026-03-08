@@ -25,9 +25,9 @@ pub struct Player {
 }
 
 pub const DEFAULT_POSITION: PlayerPosition = PlayerPosition { x: 0.0, y: 0.0 };
-pub const DEFAULT_PLAYER_SPEED : f32 = 5.0;
-pub const DEFAULT_PLAYER_WIDTH : f32 = 50.0;
-pub const DEFAULT_PLAYER_HEIGHT : f32 = 50.0;
+pub const DEFAULT_PLAYER_SPEED: f32 = 5.0;
+pub const DEFAULT_PLAYER_WIDTH: f32 = 50.0;
+pub const DEFAULT_PLAYER_HEIGHT: f32 = 50.0;
 
 pub enum NetworkState {
     ClientConnection(Client, Entity),
@@ -214,8 +214,10 @@ impl GameState {
                 for (id, player) in query {
                     if *id == client.get_local_endpoint_id() {
                         // TODO: moving diagonally is faster than moving straight, need to normalize movement vector
-                        player.position.x += (input.right as i8 - input.left as i8) as f32 * DEFAULT_PLAYER_SPEED;
-                        player.position.y += (input.down as i8 - input.up as i8) as f32 * DEFAULT_PLAYER_SPEED;
+                        player.position.x +=
+                            (input.right as i8 - input.left as i8) as f32 * DEFAULT_PLAYER_SPEED;
+                        player.position.y +=
+                            (input.down as i8 - input.up as i8) as f32 * DEFAULT_PLAYER_SPEED;
                         // Send position to the server
                         let message = UnreliableClientMessage::PlayerPosition(PlayerPosition {
                             x: player.position.x,
@@ -414,19 +416,30 @@ impl GameState {
         self.remote_player_map.len() as i32
     }
 
-    pub fn get_local_network_id(&self) -> String {
+    pub fn get_local_network_id(&self) -> Option<String> {
         if let Some(NetworkState::ClientConnection(client, _)) = &self.network_state {
-            return client.get_local_endpoint_id();
+            return Some(client.get_local_endpoint_id());
         } else if let Some(NetworkState::ServerConnection(server, _)) = &self.network_state {
-            return server.get_server_id();
+            return Some(server.get_server_id());
         }
-        DEFAULT_PLAYER_ID.to_string()
+        None
+    }
+
+    pub fn get_current_network_state(&self) -> Option<String> {
+        match &self.network_state {
+            Some(NetworkState::ClientConnection(_, _)) => Some("Client".to_string()),
+            Some(NetworkState::ServerConnection(_, _)) => Some("Server".to_string()),
+            None => None,
+        }
     }
 
     pub fn get_local_player_component(&mut self) -> Option<Player> {
-        let local_player_id = self.get_local_network_id();
+        let local_player_id = self.get_local_network_id()?;
         let local_player_entity = self.remote_player_map.get(&local_player_id)?;
-        let query = self.world.query_one_mut::<&Player>(*local_player_entity).ok()?;
+        let query = self
+            .world
+            .query_one_mut::<&Player>(*local_player_entity)
+            .ok()?;
         Some(query.clone())
     }
 
