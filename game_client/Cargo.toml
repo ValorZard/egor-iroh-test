@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+egor = {version = "0.10.0", features = ["ui"]}
+hecs.workspace = true
+game_core = { path = "../game_core" }
+tokio.workspace = true
+async-channel.workspace = true
